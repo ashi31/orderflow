@@ -1,0 +1,15 @@
+“How do you evolve a protobuf schema safely?” 
+    Add new fields with new numbers. Never change or reuse a field’s number. If you remove a field, mark its number reserved so nobody reuses it. Old clients ignore fields they don’t know, and new clients see defaults for fields old clients don’t send.
+“What’s the catch with proto3 defaults?” 
+    An unset int64 reads as 0 and an unset string reads as "". You can’t tell “not sent” from “sent as zero.” If that matters, you mark the field optional.
+“What kinds of gRPC calls are there?” Four: unary (one request, one response), server streaming, client streaming, and bidirectional streaming. We’re using unary. An event pipeline could later use client streaming for bulk uploads.
+“How do you return errors in gRPC?” gRPC requires messages for the input and output, not bare values like bool. Even if it allowed them, a wrapper lets you add fields later, such as a source field on the request, without breaking existing clients.
+What a service is
+    A service isn’t a function. It’s a named group of RPC methods, like an interface in Go, and each rpc line in it is like one HTTP endpoint.
+“Is gRPC just HTTP?” It runs on HTTP/2 with protobuf bodies, using POST with the path /package.Service/Method.
+“How do you version a gRPC API?” Add new fields and RPCs compatibly, never reuse field numbers, and for breaking changes publish a new package version like orderflow.v2. That’s the reason for the v1 in our package name.
+
+
+###
+The client calls what looks like a normal Go method. In reality it’s generated code that serializes the request, sends it over the network, and waits.
+The server has a real method with the same name. You write its body. gRPC deserializes the request, calls your method, and sends back whatever you return.
