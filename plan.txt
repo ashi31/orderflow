@@ -1,0 +1,128 @@
+Stage 1: gRPC service in Docker
+
+Week 1: gRPC basics
+
+Day	Work
+1 ✅	Repo, protoc, plugins, VS Code + WSL
+2 ✅	order_event.proto: header ✅, OrderEvent ✅, then the SubmitEvent RPC
+3 ✅Generate Go code, commit
+4 ✅Server skeleton on :50051 that logs and acks (main.go)
+5 ✅Test with grpcurl, commit
+
+Week 2: make it solid and containerized
+
+Day	Work
+6	Input validation: reject empty event_id or order_id with proper gRPC status codes
+7	Table-driven unit tests for the handler
+8	Structured logging (log/slog) and graceful shutdown
+9	Multi-stage Dockerfile, run the container
+10	docker-compose, README, tag Stage 1 complete
+Stage 2: Kafka + Redis dedup
+
+Week 3: Kafka
+
+Day	Work
+11	Kafka concepts (topics, partitions, offsets), run Kafka locally in compose
+12	Pick a Go Kafka client and write a “hello” producer and consumer
+13	SubmitEvent publishes the event to a topic
+14	Separate consumer service that reads and logs events
+15	Consumer groups, offsets, and why duplicates happen (at-least-once delivery)
+
+Week 4: Redis idempotent dedup
+
+Day	Work
+16	Redis in compose, SET NX and TTL concepts
+17	Dedup in the consumer using event_id
+18	Failure cases: what if the consumer crashes between the dedup check and processing?
+19	Tests that inject duplicate events
+20	README, architecture diagram, tag Stage 2 complete
+Later stages
+
+Week 5: Postgres
+
+Day	Work
+21	Postgres in compose, design the events table
+22	Migrations
+23	Consumer writes events with pgx
+24	UNIQUE(event_id) with ON CONFLICT DO NOTHING, and how it compares to Redis dedup
+25	Integration tests
+
+Week 6: buffer and interview review. Catch up on anything that slipped, run the whole pipeline end to end, and practice explaining the architecture out loud.
+
+Week 7: AWS (one small deployment)
+
+Day	Work
+31	Account safety: billing alarm, IAM user, check current free-tier terms
+32	Push the Docker image to ECR
+33	Run it on EC2 or ECS
+34	Test it with grpcurl from your laptop
+35	Tear everything down and write notes
+
+Week 8: Kubernetes
+
+Day	Work
+36	Local cluster (kind or minikube)
+37	Deployment manifest
+38	Service
+39	ConfigMap and Secret
+40	Readiness and liveness probes, wrap up
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+𝗗𝗦𝗔
+1. Minimum Window Substring (sliding window).
+2. Course Schedule (topological sort).
+3. Number of Islands (BFS/DFS + Union Find).
+4. Sliding Window Maximum (monotonic deque).
+5. Longest Substring Without Repeating Characters.
+6. Meeting Rooms II (intervals + heap).
+7. Network Delay Time (Dijkstra).
+8. Coin Change (min coins + number of ways).
+9. Product of Array Except Self.
+10. Lowest Common Ancestor of a Binary Tree.
+11. Rotting Oranges (multi-source BFS).
+12. Edit Distance (2D DP).
+13. Search in Rotated Sorted Array.
+14. Accounts Merge (Union Find).
+15. Largest Rectangle in Histogram (monotonic stack).
+16. Alien Dictionary (graph + topological sort).
+
+𝗦𝘆𝘀𝘁𝗲𝗺 𝗗𝗲𝘀𝗶𝗴𝗻
+17. Design a Food Delivery App (Swiggy/Zomato).
+18. Design a Ticket Booking System (like BookMyShow).
+19. Design a Web Crawler.
+20. Design a Distributed Message Queue (like Kafka).
+21. Design a Real-time Leaderboard for millions of players.
+22. Design a Hotel Booking System (like Airbnb).
+23. Design a Metrics and Logging System (like Datadog).
+24. Design a Proximity Service (nearby drivers/restaurants).
+25. Design a Live Streaming Platform (like Hotstar during IPL).
+26. Design an Ad Click Aggregator.
+27. Design a Key-Value Store (like DynamoDB).
+28. Design a Stock Exchange Order Matching Engine.
+29. Design a Recommendation System (like Netflix).
+30. Design a Digital Wallet (like Paytm/PhonePe).
+31. Design a Distributed Lock Service.
+32. Design an Online Code Judge (like LeetCode).

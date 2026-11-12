@@ -1,0 +1,66 @@
+“How do you evolve a protobuf schema safely?” 
+    Add new fields with new numbers. Never change or reuse a field’s number. If you remove a field, mark its number reserved so nobody reuses it. Old clients ignore fields they don’t know, and new clients see defaults for fields old clients don’t send.
+“What’s the catch with proto3 defaults?” 
+    An unset int64 reads as 0 and an unset string reads as "". You can’t tell “not sent” from “sent as zero.” If that matters, you mark the field optional.
+“What kinds of gRPC calls are there?” Four: unary (one request, one response), server streaming, client streaming, and bidirectional streaming. We’re using unary. An event pipeline could later use client streaming for bulk uploads.
+“How do you return errors in gRPC?” gRPC requires messages for the input and output, not bare values like bool. Even if it allowed them, a wrapper lets you add fields later, such as a source field on the request, without breaking existing clients.
+What a service is
+    A service isn’t a function. It’s a named group of RPC methods, like an interface in Go, and each rpc line in it is like one HTTP endpoint.
+“Is gRPC just HTTP?” It runs on HTTP/2 with protobuf bodies, using POST with the path /package.Service/Method.
+“How do you version a gRPC API?” Add new fields and RPCs compatibly, never reuse field numbers, and for breaking changes publish a new package version like orderflow.v2. That’s the reason for the v1 in our package name.
+
+
+###
+The client calls what looks like a normal Go method. In reality it’s generated code that serializes the request, sends it over the network, and waits.
+The server has a real method with the same name. You write its body. gRPC deserializes the request, calls your method, and sends back whatever you return.
+
+
+### protoc --proto_path=proto \
+  --go_out=. --go_opt=module=github.com/YOUR_GITHUB_USERNAME/orderflow \
+  --go-grpc_out=. --go-grpc_opt=module=github.com/YOUR_GITHUB_USERNAME/orderflow \
+  proto/order_event.proto
+
+go.mod	Which modules and versions your project needs
+go.sum	Cryptographic hashes of those modules, so a download can’t be silently swapped for tampered code
+
+Why not write func (pb.UnimplementedOrderEventServiceServer) SubmitEvent(...) directly? Go doesn’t allow it. You can only define methods on types declared in your own package. That type belongs to the pb package, so you can’t add or replace methods on it. You need your own type. So we create server, and embed the generated one inside it
+
+“Does Go support inheritance?” No. It uses composition through embedding, and polymorphism through interfaces. State both differences: no subtype relationship, and no virtual dispatch from the embedded type back to the outer one.
+“Prefer composition over inheritance” is a common design principle, and Go’s design enforces it.
+
+“What’s the flow from a network request to your handler?” TCP listener, then the gRPC server (HTTP/2), then the registered service, then your method. Registration is the lookup table.
+
+1. syntax = "proto3"; tells protoc which version of the language you’re writing. proto3 is the current one. It must be the first line, or protoc assumes the older proto2.
+
+2. package orderflow.v1; is a namespace inside the protobuf world. It stops names from colliding, for example if someone else also defines an OrderEvent. The v1 is a convention: if you ever make breaking changes, you create v2 and old clients keep working. This is separate from Go’s own packages.
+
+3. Where gRPC and protobuf are actually stronger
+        1. The contract is enforced, not just documented.
+        With JSON, the shape of an order event lives in your head, or in docs that drift. A client can send "amount": "499" (a string) and nothing catches it until your handler breaks. With a .proto file, the contract is code. protoc generates the Go types for both client and server, so a wrong type fails at compile time.
+
+        2. Code generation removes the boilerplate.
+        With HTTP and JSON you write the routes, the request structs, the parsing, and the client by hand. With gRPC, SubmitEvent becomes a generated server interface and a generated client method. You only write the logic.
+
+        3. Safe evolution of the schema.
+        Protobuf identifies fields by number, not by name. You can add fields later and old clients keep working. We’ll see this in the next step.
+
+        4. Efficiency and streaming.
+        Protobuf is a compact binary format, smaller and faster to parse than JSON. gRPC runs on HTTP/2, so it supports streaming. That fits an event pipeline that could receive many events per second.
+
+        5. It carries into Stage 2.
+        The same OrderEvent message can be the payload you publish to Kafka. One schema defines both the API and the stream.
+
+        What you give up
+        Harder to debug. You can’t just curl it and read the body. That’s why Day 5 uses grpcurl.
+        Browsers can’t call it directly. You’d need a proxy or gRPC-Web.
+        More setup. You just saw it: protoc, two plugins, PATH.
+        Why use it here
+
+        It’s a good fit for service-to-service communication, which is what an order-events pipeline is. It’s also widely used for that in backend work,
+
+4. what’s the difference between package and go_package?” 
+    The answer is the table above: one namespaces the schema, the other only tells the Go generator where to put its output.
+
+5. Why wrapper messages instead of rpc SubmitEvent(OrderEvent) returns (bool)? gRPC requires messages for the input and output, not bare values like bool. Even if it allowed them, a wrapper lets you add fields later, such as a source field on the request, without breaking existing clients.
+
+6. 
